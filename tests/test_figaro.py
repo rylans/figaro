@@ -13,5 +13,5 @@ def test_response_from_math_handler():
     assert Figaro().hears("Calculate 1 minus 33") == expected
 
 def test_response_from_math_handler_unary():
-    expected = "3.0"
-    assert Figaro().hears("whats log 1000") == expected
+    expected = "4.0"
+    assert Figaro().hears("whats root 16") == expected
