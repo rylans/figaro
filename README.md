@@ -1,0 +1,2 @@
+# figaro
+CLI personal assistant 
