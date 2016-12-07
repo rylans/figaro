@@ -14,19 +14,87 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+from abc import abstractmethod
+
+class StatementHandlerBase(object):
+    """Abstract base class for handling general statements."""
+
+    @abstractmethod
+    def can_handle(self, statement):
+        """Return true if this handler can respond to the statement"""
+        pass
+
+    @abstractmethod
+    def handle(self, statement):
+        """Return a response to this statement"""
+        pass
+
+class DefaultStatementHandler(StatementHandlerBase):
+    """Class to handle responses that other handlers can not respond to."""
+    def can_handle(self, _):
+        return True
+
+    def handle(self, _):
+        return Response("I'm not sure how to respond to that.", [])
+
+class GreetingStatementHandler(StatementHandlerBase):
+    """For Greetings"""
+    def can_handle(self, statement):
+        lowr = statement.lower()
+        if 'hello' in lowr:
+            return True
+        if 'hey' in lowr:
+            return True
+        return False
+
+    def handle(self, statement):
+        if 'hey' in statement.lower():
+            return Response('Hey there.', [])
+        return Response('Hello!', [])
+
+class Response(object):
+    """Response to a question or statement
+
+    >>> Response('Certainly.', []).answer
+    'Certainly.'
+
+    >>> Response('I will.', [])
+    <Response 'I will.'>
+    """
+    def __init__(self, answer, memo):
+        self._answer = answer
+        self._memo = memo
+
+    @property
+    def answer(self):
+        return self._answer
+
+    def __repr__(self):
+        return "<Response '%s'>" % self.answer
 
 class Figaro(object):
     """Figaro -- the personal assistant"""
     def __init__(self):
-        pass
+        self._handlers = []
+        self._handlers.append(GreetingStatementHandler())
+        self._handlers.append(DefaultStatementHandler())
 
-    def greet(self):
-        """Greet the user
+    def _dispatch_to_handler(self, statement):
+        for handler in self._handlers:
+            if handler.can_handle(statement):
+                return handler.handle(statement)
+        raise RuntimeError('No handler registered for statement "%s"' % statement)
 
-        >>> Figaro().greet()
-        'Call me Figaro.'
+    def hears(self, statement):
+        """Accept the given statement and respond to it
+
+        >>> Figaro().hears("Hello there")
+        'Hello!'
+
+        >>> Figaro().hears("jibberjabber")
+        "I'm not sure how to respond to that."
         """
-        return "Call me Figaro."
+        return self._dispatch_to_handler(statement).answer
 
 if __name__ == '__main__':
     import doctest
