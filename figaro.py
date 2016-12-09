@@ -15,7 +15,7 @@
    limitations under the License.
 """
 from abc import abstractmethod
-from math import log, sqrt
+from math import log, log10, sqrt, sin, cos, tan
 
 class StatementHandlerBase(object):
     """Abstract base class for handling general statements."""
@@ -57,15 +57,22 @@ class ArithmeticHandler(StatementHandlerBase):
     """Class for basic arithmetic responses"""
     _ADD = lambda x, y: sum([x, y])
     _SUBTRACT = lambda x, y: sum([x, -1*y])
-    _LOG10 = lambda x: log(x, 10)
+    _PRODUCT = lambda x, y: x*y
 
     INFIX_OPS = [('+', _ADD),
                  ('plus', _ADD),
                  ('-', _SUBTRACT),
-                 ('minus', _SUBTRACT)]
+                 ('minus', _SUBTRACT),
+                 ('*', _PRODUCT),
+                 ('times', _PRODUCT)]
 
     UNARY_OPS = [('root', sqrt),
-                 ('log', _LOG10)]
+                 ('sqrt', sqrt),
+                 ('sin', sin),
+                 ('cos', cos),
+                 ('tan', tan),
+                 ('ln', log),
+                 ('log', log10)]
 
     def _is_number_in(self, tokens):
         """Return true if there is a number available
@@ -213,6 +220,12 @@ class ArithmeticHandler(StatementHandlerBase):
 
     def handle(self, statement):
         """Respond to basic arithmetic request
+
+        >>> ArithmeticHandler().handle("compute 4 * -2").answer
+        '-8.0'
+
+        >>> ArithmeticHandler().handle("3.0 times 9.0").answer
+        '27.0'
 
         >>> ArithmeticHandler().handle("What is 13 - 20").answer
         '-7.0'
