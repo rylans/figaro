@@ -35,3 +35,11 @@ def test_name_in_out():
     assert fg.hears("who am I?") == "I don't know. You tell me."
     assert fg.hears("My name is Dan") == "Nice to meet you."
     assert fg.hears("Who am I?") == "You told me your name is Dan."
+
+def test_conv_termination():
+    fg = Figaro()
+    assert fg.conversation_ended == False
+    assert fg.hears("Hello") == "Hello!"
+    assert fg.conversation_ended == False
+    assert fg.hears("Bye") == "See you later!"
+    assert fg.conversation_ended == True

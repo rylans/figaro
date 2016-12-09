@@ -39,6 +39,18 @@ class DefaultStatementHandler(StatementHandlerBase):
     def handle(self, statement, memory=None):
         return Response("I'm not sure how to respond to that.", [])
 
+class ConvoTerminationHandler(StatementHandlerBase):
+    """Handle parting salutations such as 'bye'"""
+    def can_handle(self, statement, memory):
+        return self.handle(statement, memory) != None
+
+    def handle(self, statement, memory):
+        norm = statement.lower()
+        if 'bye' in norm:
+            return Response("See you later!", []).terminate_conversation()
+        else:
+            return None
+
 class DeclaredMemoryHandler(StatementHandlerBase):
     """Handle statements that ask previously declared things"""
     def can_handle(self, statement, memory=None):
@@ -309,6 +321,17 @@ class Response(object):
     def __init__(self, answer, memo):
         self._answer = answer
         self._memo = memo
+        self._term = False
+
+    def terminate_conversation(self):
+        """Signal end of conversation"""
+        self._term = True
+        return self
+
+    @property
+    def terminated(self):
+        """True if conversation should be ended"""
+        return self._term
 
     @property
     def answer(self):
@@ -326,13 +349,19 @@ class Response(object):
 class Figaro(object):
     """Figaro -- the personal assistant"""
     def __init__(self):
+        self._conv_ended = False
         self._memory = {}
         self._handlers = []
         self._handlers.append(GreetingStatementHandler())
         self._handlers.append(ArithmeticHandler())
         self._handlers.append(DeclaredMemoryHandler())
         self._handlers.append(DeclarationHandler())
+        self._handlers.append(ConvoTerminationHandler())
         self._handlers.append(DefaultStatementHandler())
+
+    @property
+    def conversation_ended(self):
+        return self._conv_ended
 
     @staticmethod
     def key_interlocutor_name():
@@ -376,6 +405,10 @@ class Figaro(object):
         'You told me your name is Ishmael.'
         """
         response = self._dispatch_to_handler(statement)
+
+        if response.terminated:
+            self._conv_ended = True
+
         answer, memos = response.answer, response.memo
 
         for memo in memos:
