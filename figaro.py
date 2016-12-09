@@ -38,6 +38,18 @@ class DefaultStatementHandler(StatementHandlerBase):
     def handle(self, _):
         return Response("I'm not sure how to respond to that.", [])
 
+class DeclarationHandler(StatementHandlerBase):
+    """Handle delcarative statements"""
+    def can_handle(self, statement):
+        return " is " in statement and "?" not in statement
+
+    def handle(self, statement):
+        key_val = statement.split(" is ")
+        key = key_val[0]
+        val = key_val[1]
+
+        return Response("Thanks for letting me know.", [(key, val)])
+
 class GreetingStatementHandler(StatementHandlerBase):
     """For Greetings"""
     def can_handle(self, statement):
@@ -256,7 +268,13 @@ class Response(object):
 
     @property
     def answer(self):
+        """The textual response to the inquiry"""
         return self._answer
+
+    @property
+    def memo(self):
+        """The facts to memorize"""
+        return self._memo
 
     def __repr__(self):
         return "<Response '%s'>" % self.answer
@@ -264,10 +282,21 @@ class Response(object):
 class Figaro(object):
     """Figaro -- the personal assistant"""
     def __init__(self):
+        self._memory = {}
         self._handlers = []
         self._handlers.append(GreetingStatementHandler())
         self._handlers.append(ArithmeticHandler())
+        self._handlers.append(DeclarationHandler())
         self._handlers.append(DefaultStatementHandler())
+
+    def _mem_store(self, key, val):
+        self._memory[key] = val
+
+    def _mem_get(self, key):
+        if self._memory.get(key):
+            return self._memory[key]
+        else:
+            return None
 
     def _dispatch_to_handler(self, statement):
         for handler in self._handlers:
@@ -278,6 +307,9 @@ class Figaro(object):
     def hears(self, statement):
         """Accept the given statement and respond to it
 
+        >>> Figaro().hears("my name is Ishmael")
+        'Thanks for letting me know.'
+
         >>> Figaro().hears("Hello there")
         'Hello!'
 
@@ -287,7 +319,14 @@ class Figaro(object):
         >>> Figaro().hears("jibberjabber")
         "I'm not sure how to respond to that."
         """
-        return self._dispatch_to_handler(statement).answer
+        response = self._dispatch_to_handler(statement)
+        answer, memos = response.answer, response.memo
+
+        for memo in memos:
+            key, val = memo
+            self._mem_store(key, val)
+
+        return answer
 
 if __name__ == '__main__':
     import doctest
