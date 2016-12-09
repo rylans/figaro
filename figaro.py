@@ -37,7 +37,12 @@ class DefaultStatementHandler(StatementHandlerBase):
         return True
 
     def handle(self, statement, memory=None):
-        return Response("I'm not sure how to respond to that.", [])
+        topic = memory.get(Figaro.key_topic())
+        if not topic:
+            return Response("I'm not sure how to respond to that.", [])
+        else:
+            return Response("Sorry. Are you still talking about the " \
+                    + topic + "?", [])
 
 class ConvoTerminationHandler(StatementHandlerBase):
     """Handle parting salutations such as 'bye'"""
@@ -112,7 +117,7 @@ class GreetingStatementHandler(StatementHandlerBase):
         lowr = statement.lower()
         if 'hello' in lowr:
             return True
-        if 'hey' in lowr:
+        if 'hey' in lowr and 'they' not in lowr:
             return True
         return False
 
@@ -309,6 +314,67 @@ class ArithmeticHandler(StatementHandlerBase):
             return Response(str(num), [])
         raise RuntimeError("ArithmeticHandler reported ability to handle %s but can't" % statement)
 
+class ElizaStatementHandler(StatementHandlerBase):
+    """Handle statements that a pseudo Rogerian psychotherapist could answer"""
+    PATTERNS = [('always', 'Can you think of a specific example?'),
+                ('never', 'Not even once?'),
+                ('my {topic}', "That's interesting."),
+                ('what is a {topic}', "I have no clue."),
+                ('what is an {topic}', "I have no clue."),
+                ('they are', 'I never knew that.'),
+                ('when do you', "I'm not in a rush."),
+                ('when are you', "I take my time."),
+                ('why are you', "I was born that way."),
+                ('who are you', "Are you asking for my name?"),
+                ('what are you', "I'm just like you."),
+                ('where are you', "I live in the computer."),
+                ('are you', 'Yes. How about you?'),
+                ('you are', 'In what way exactly?')]
+
+    def _pattern_match(self, statement, pattern):
+        """Match pattern to statement, or return (False, None)
+
+        >>> ElizaStatementHandler()._pattern_match("Are you smart?", 'are you')
+        (True, None)
+
+        >>> ElizaStatementHandler()._pattern_match("Are you smart?", 'you are')
+        (False, None)
+
+        >>> ElizaStatementHandler()._pattern_match('The weather was rainy today', 'the {topic} *')
+        (True, 'weather')
+
+        >>> ElizaStatementHandler()._pattern_match("He makes me so mad", 'he * me')
+        (True, None)
+
+        >>> ElizaStatementHandler()._pattern_match('My girlfriend said that', "my {topic} *")
+        (True, 'girlfriend')
+        """
+        topic = None
+        norm = statement.lower()
+
+        for input_word, pattern_word in zip(norm.split(' '),
+                                            pattern.split(' ')):
+            if pattern_word == '*':
+                pass
+            elif pattern_word == '{topic}':
+                topic = input_word
+            elif pattern_word != input_word:
+                return (False, None)
+        return (True, topic)
+
+    def can_handle(self, statement, memory):
+        return self.handle(statement, memory) != None
+
+    def handle(self, statement, memory):
+        for pattern, answer in ElizaStatementHandler.PATTERNS:
+            match, topic = self._pattern_match(statement, pattern)
+            if match:
+                mem = []
+                if topic != None:
+                    mem.append((Figaro.key_topic(), topic))
+                return Response(answer, mem)
+        return None
+
 class Response(object):
     """Response to a question or statement
 
@@ -357,6 +423,7 @@ class Figaro(object):
         self._handlers.append(DeclaredMemoryHandler())
         self._handlers.append(DeclarationHandler())
         self._handlers.append(ConvoTerminationHandler())
+        self._handlers.append(ElizaStatementHandler())
         self._handlers.append(DefaultStatementHandler())
 
     @property
@@ -367,6 +434,11 @@ class Figaro(object):
     def key_interlocutor_name():
         """The key to the memory dict for the name of the user speaking to Figaro"""
         return '_interlocutor_name'
+
+    @staticmethod
+    def key_topic():
+        """The key to the memory dict for the conversation topic"""
+        return '_topic'
 
     def _mem_store(self, key, val):
         self._memory[key] = val
@@ -389,6 +461,15 @@ class Figaro(object):
 
         >>> Figaro().hears("jibberjabber")
         "I'm not sure how to respond to that."
+
+        >>> Figaro().hears("Why are you so rude?")
+        'I was born that way.'
+
+        >>> Figaro().hears("Are you deaf?")
+        'Yes. How about you?'
+
+        >>> Figaro().hears("you are really annoying")
+        'In what way exactly?'
 
         >>> fg = Figaro()
         >>> fg.hears("who am i")
