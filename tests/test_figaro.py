@@ -25,3 +25,13 @@ def test_math_hander_ln():
     expected = "2.0"
     assert Figaro().hears("what is ln " + str(e*e)) == expected
 
+def test_simple_memory_in_out():
+    fg = Figaro()
+    fg.hears("she is one of us")
+    assert fg.hears("Who is she?") == 'one of us'
+
+def test_name_in_out():
+    fg = Figaro()
+    assert fg.hears("who am I?") == "I don't know. You tell me."
+    assert fg.hears("My name is Dan") == "Nice to meet you."
+    assert fg.hears("Who am I?") == "You told me your name is Dan."

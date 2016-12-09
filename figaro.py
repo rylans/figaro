@@ -1,4 +1,4 @@
-"""figaro.py
+"""figaro.py -- personal assistant and modular chat bot
 
    Copyright 2016 Rylan Santinon
 
@@ -16,43 +16,87 @@
 """
 from abc import abstractmethod
 from math import log, log10, sqrt, sin, cos, tan
+from copy import deepcopy
 
 class StatementHandlerBase(object):
     """Abstract base class for handling general statements."""
 
     @abstractmethod
-    def can_handle(self, statement):
+    def can_handle(self, statement, memory):
         """Return true if this handler can respond to the statement"""
         pass
 
     @abstractmethod
-    def handle(self, statement):
+    def handle(self, statement, memory):
         """Return a response to this statement"""
         pass
 
 class DefaultStatementHandler(StatementHandlerBase):
     """Class to handle responses that other handlers can not respond to."""
-    def can_handle(self, _):
+    def can_handle(self, _, memory=None):
         return True
 
-    def handle(self, _):
+    def handle(self, statement, memory=None):
         return Response("I'm not sure how to respond to that.", [])
+
+class DeclaredMemoryHandler(StatementHandlerBase):
+    """Handle statements that ask previously declared things"""
+    def can_handle(self, statement, memory=None):
+        return self.handle(statement, memory) != None
+
+    def handle(self, statement, memory=None):
+        """Handle a basic question
+
+        >>> DeclaredMemoryHandler().handle('who is rodney?', {'rodney': 'a friend'}).answer
+        'a friend'
+        """
+        norm = statement.lower()
+        if " is " in norm:
+            if "?" in norm or "wh" in norm:
+                key_val = statement.split(" is ")
+                key = key_val[1].replace('?', '')
+                if memory.get(key):
+                    return Response(str(memory[key]), [])
+                else:
+                    return None
+
+        set_name = memory.get(Figaro.key_interlocutor_name())
+        if 'who am' in norm:
+            if set_name:
+                return Response("You told me your name is " + set_name + ".", [])
+            else:
+                return Response("I don't know. You tell me.", [])
+
+        return None
 
 class DeclarationHandler(StatementHandlerBase):
     """Handle delcarative statements"""
-    def can_handle(self, statement):
-        return " is " in statement and "?" not in statement
+    def can_handle(self, statement, memory=None):
+        return self.handle(statement, memory) != None
 
-    def handle(self, statement):
+    def handle(self, statement, memory=None):
+        norm = statement.lower()
+        if " is " not in norm:
+            return None
+        if "?" in norm:
+            return None
+
         key_val = statement.split(" is ")
-        key = key_val[0]
+        key = key_val[0].lower()
         val = key_val[1]
 
-        return Response("Thanks for letting me know.", [(key, val)])
+        ans = "Thanks for letting me know."
+        to_mem = [(key, val)]
+
+        if "my name is" in norm:
+            ans = "Nice to meet you."
+            to_mem.append((Figaro.key_interlocutor_name(), val))
+
+        return Response(ans, to_mem)
 
 class GreetingStatementHandler(StatementHandlerBase):
     """For Greetings"""
-    def can_handle(self, statement):
+    def can_handle(self, statement, memory=None):
         lowr = statement.lower()
         if 'hello' in lowr:
             return True
@@ -60,7 +104,7 @@ class GreetingStatementHandler(StatementHandlerBase):
             return True
         return False
 
-    def handle(self, statement):
+    def handle(self, statement, memory=None):
         if 'hey' in statement.lower():
             return Response('Hey there.', [])
         return Response('Hello!', [])
@@ -226,11 +270,11 @@ class ArithmeticHandler(StatementHandlerBase):
             raise RuntimeError("Unable to calculate operation: %s" % statement)
         return op_func(arg_a, arg_b)
 
-    def can_handle(self, statement):
+    def can_handle(self, statement, memory=None):
         low = statement.lower()
         return self._has_infix(low) or self._has_unary(low)
 
-    def handle(self, statement):
+    def handle(self, statement, memory=None):
         """Respond to basic arithmetic request
 
         >>> ArithmeticHandler().handle("compute 4 * -2").answer
@@ -286,29 +330,27 @@ class Figaro(object):
         self._handlers = []
         self._handlers.append(GreetingStatementHandler())
         self._handlers.append(ArithmeticHandler())
+        self._handlers.append(DeclaredMemoryHandler())
         self._handlers.append(DeclarationHandler())
         self._handlers.append(DefaultStatementHandler())
+
+    @staticmethod
+    def key_interlocutor_name():
+        """The key to the memory dict for the name of the user speaking to Figaro"""
+        return '_interlocutor_name'
 
     def _mem_store(self, key, val):
         self._memory[key] = val
 
-    def _mem_get(self, key):
-        if self._memory.get(key):
-            return self._memory[key]
-        else:
-            return None
-
     def _dispatch_to_handler(self, statement):
         for handler in self._handlers:
-            if handler.can_handle(statement):
-                return handler.handle(statement)
+            copied_mem = deepcopy(self._memory)
+            if handler.can_handle(statement, copied_mem):
+                return handler.handle(statement, copied_mem)
         raise RuntimeError('No handler registered for statement "%s"' % statement)
 
     def hears(self, statement):
         """Accept the given statement and respond to it
-
-        >>> Figaro().hears("my name is Ishmael")
-        'Thanks for letting me know.'
 
         >>> Figaro().hears("Hello there")
         'Hello!'
@@ -318,6 +360,20 @@ class Figaro(object):
 
         >>> Figaro().hears("jibberjabber")
         "I'm not sure how to respond to that."
+
+        >>> fg = Figaro()
+        >>> fg.hears("who am i")
+        "I don't know. You tell me."
+        >>> fg.hears("alabama is in America.")
+        'Thanks for letting me know.'
+        >>> fg.hears("Where is alabama?")
+        'in America.'
+        >>> fg.hears("My name is Ishmael")
+        'Nice to meet you.'
+        >>> fg.hears("What is my name?")
+        'Ishmael'
+        >>> fg.hears("who am I?")
+        'You told me your name is Ishmael.'
         """
         response = self._dispatch_to_handler(statement)
         answer, memos = response.answer, response.memo
