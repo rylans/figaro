@@ -8,6 +8,14 @@ setup(
         author_email='rylans@gmail.com',
         license='Apache 2.0',
         packages=find_packages(),
+        classifiers=[
+            'Development Status :: 3 - Alpha',
+            'Natural Language :: English',
+            'License :: OSI Approved :: Apache Software License',
+            'Programming Language :: Python',
+            'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3'
+        ],
         install_requires=[
         ],
 )
