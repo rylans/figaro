@@ -5,6 +5,8 @@ from __future__ import print_function
 import os
 import json
 
+from figaro import *
+
 def check_can_handle(handler_init, can_handle_str):
     """Verify that handler can handle the expected string"""
     assert handler_init().can_handle(can_handle_str, {}) == True, \
@@ -40,7 +42,6 @@ def build_specific(handler_callable):
     return test
 
 def check_all_handlers():
-    from figaro import *
     localdict = locals().copy()
     handlerkeys = [k for k in localdict if "Handler" in k]
     handlertests = [build_specific(localdict[k]) for k in handlerkeys]
