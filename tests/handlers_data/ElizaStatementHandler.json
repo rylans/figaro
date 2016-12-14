@@ -1,0 +1,5 @@
+{
+  "name": "ElizaStatementHandler",
+  "can_handle": "what is a rhino?",
+  "not_handle": "unhandleable"
+}

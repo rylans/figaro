@@ -44,19 +44,6 @@ class DefaultStatementHandler(StatementHandlerBase):
             return Response("Sorry. Are you still talking about the " \
                     + topic + "?", [])
 
-class ConvoTerminationHandler(StatementHandlerBase):
-    """Handle parting salutations such as 'bye'"""
-    def can_handle(self, statement, memory):
-        return self.handle(statement, memory) != None
-
-    def handle(self, statement, memory):
-        norm = statement.lower()
-        if 'bye' in norm:
-            return Response("See you later!", []).terminate_conversation()
-        else:
-            return None
-
-
 if __name__ == '__main__':
     import doctest
     doctest.testmod()

@@ -11,6 +11,7 @@ test:
 	python -m figaro.handlers.greetingstatementhandler
 	python -m doctest README.md
 	nosetests -v
+	python tests/handlers.py
 
 install:
 	pip install .
