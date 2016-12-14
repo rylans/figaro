@@ -1,4 +1,7 @@
 """handlers.py -- Dynamic tests to ensure that handlers conform to spec"""
+
+from __future__ import print_function
+
 import os
 import json
 
@@ -21,14 +24,14 @@ def build_specific(handler_callable):
         try:
             test_data = json.load(data_fp)
         except Exception as e:
-            print "Error loading %s" % data_file
+            print("Error loading %s" % data_file)
             raise e
 
     try:
         can_handle = test_data['can_handle']
         not_handle = test_data['not_handle']
     except KeyError as keye:
-        print "Unable to load key from json %s" % data_file
+        print("Unable to load key from json %s" % data_file)
         raise keye
 
     def test():
@@ -51,7 +54,7 @@ def check_all_handlers():
             errors.append(e)
 
     if errors:
-        print errors
+        print(errors)
         raise errors[0]
 
 if __name__ == '__main__':
