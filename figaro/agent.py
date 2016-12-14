@@ -16,13 +16,13 @@
 """
 from copy import deepcopy
 
-from .handlers import (GreetingStatementHandler,
-                       ArithmeticHandler,
-                       DeclaredMemoryHandler,
-                       DeclarationHandler,
-                       ConvoTerminationHandler,
-                       ElizaStatementHandler,
-                       DefaultStatementHandler)
+from .handlers.greetingstatementhandler import GreetingStatementHandler
+from .handlers.arithmetichandler import ArithmeticHandler
+from .handlers.declaredmemoryhandler import DeclaredMemoryHandler
+from .handlers.declarationhandler import DeclarationHandler
+from .handlers.convoterminationhandler import ConvoTerminationHandler
+from .handlers.elizastatementhandler import ElizaStatementHandler
+from .handlerbase import DefaultStatementHandler
 
 class Figaro(object):
     """Figaro -- the personal assistant"""

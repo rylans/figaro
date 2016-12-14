@@ -1,4 +1,4 @@
-"""handlers.py -- specific response handlers
+"""arithmetichandler.py -- Basic math and arithmetic
 
    Copyright 2016 Rylan Santinon
 
@@ -14,118 +14,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from abc import abstractmethod
+
+from ..response import Response
+from ..handlerbase import StatementHandlerBase
+
 from math import log, log10, sqrt, sin, cos, tan
-from .response import Response
-from .memorykeys import MemoryKeys
-
-class StatementHandlerBase(object):
-    """Abstract base class for handling general statements."""
-
-    @abstractmethod
-    def can_handle(self, statement, memory):
-        """Return true if this handler can respond to the statement"""
-        pass
-
-    @abstractmethod
-    def handle(self, statement, memory):
-        """Return a response to this statement"""
-        pass
-
-class DefaultStatementHandler(StatementHandlerBase):
-    """Class to handle responses that other handlers can not respond to."""
-    def can_handle(self, _, memory=None):
-        return True
-
-    def handle(self, statement, memory=None):
-        topic = memory.get(MemoryKeys.key_topic())
-        if not topic:
-            return Response("I'm not sure how to respond to that.", [])
-        else:
-            return Response("Sorry. Are you still talking about the " \
-                    + topic + "?", [])
-
-class ConvoTerminationHandler(StatementHandlerBase):
-    """Handle parting salutations such as 'bye'"""
-    def can_handle(self, statement, memory):
-        return self.handle(statement, memory) != None
-
-    def handle(self, statement, memory):
-        norm = statement.lower()
-        if 'bye' in norm:
-            return Response("See you later!", []).terminate_conversation()
-        else:
-            return None
-
-class DeclaredMemoryHandler(StatementHandlerBase):
-    """Handle statements that ask previously declared things"""
-    def can_handle(self, statement, memory=None):
-        return self.handle(statement, memory) != None
-
-    def handle(self, statement, memory=None):
-        """Handle a basic question
-
-        >>> DeclaredMemoryHandler().handle('who is rodney?', {'rodney': 'a friend'}).answer
-        'a friend'
-        """
-        norm = statement.lower()
-        if " is " in norm:
-            if "?" in norm or "wh" in norm:
-                key_val = statement.split(" is ")
-                key = key_val[1].replace('?', '')
-                if memory.get(key):
-                    return Response(str(memory[key]), [])
-                else:
-                    return None
-
-        set_name = memory.get(MemoryKeys.key_interlocutor_name())
-        if 'who am' in norm:
-            if set_name:
-                return Response("You told me your name is " + set_name + ".", [])
-            else:
-                return Response("I don't know. You tell me.", [])
-
-        return None
-
-class DeclarationHandler(StatementHandlerBase):
-    """Handle delcarative statements"""
-    def can_handle(self, statement, memory=None):
-        return self.handle(statement, memory) != None
-
-    def handle(self, statement, memory=None):
-        norm = statement.lower()
-        if " is " not in norm:
-            return None
-        if "?" in norm:
-            return None
-
-        key_val = statement.split(" is ")
-        key = key_val[0].lower()
-        val = key_val[1]
-
-        ans = "Thanks for letting me know."
-        to_mem = [(key, val)]
-
-        if "my name is" in norm:
-            ans = "Nice to meet you."
-            to_mem.append((MemoryKeys.key_interlocutor_name(), val))
-
-        return Response(ans, to_mem)
-
-class GreetingStatementHandler(StatementHandlerBase):
-    """For Greetings"""
-    def can_handle(self, statement, memory=None):
-        lowr = statement.lower()
-        if 'hello' in lowr:
-            return True
-        if 'hey' in lowr and 'they' not in lowr:
-            return True
-        return False
-
-    def handle(self, statement, memory=None):
-        if 'hey' in statement.lower():
-            return Response('Hey there.', [])
-        return Response('Hello!', [])
 
 class ArithmeticHandler(StatementHandlerBase):
     """Class for basic arithmetic responses"""
@@ -314,67 +207,6 @@ class ArithmeticHandler(StatementHandlerBase):
             num = self._calc_infix(statement)
             return Response(str(num), [])
         raise RuntimeError("ArithmeticHandler reported ability to handle %s but can't" % statement)
-
-class ElizaStatementHandler(StatementHandlerBase):
-    """Handle statements that a pseudo Rogerian psychotherapist could answer"""
-    PATTERNS = [('always', 'Can you think of a specific example?'),
-                ('never', 'Not even once?'),
-                ('my {topic}', "That's interesting."),
-                ('what is a {topic}', "I have no clue."),
-                ('what is an {topic}', "I have no clue."),
-                ('they are', 'I never knew that.'),
-                ('when do you', "I'm not in a rush."),
-                ('when are you', "I take my time."),
-                ('why are you', "I was born that way."),
-                ('who are you', "Are you asking for my name?"),
-                ('what are you', "I'm just like you."),
-                ('where are you', "I live in the computer."),
-                ('are you', 'Yes. How about you?'),
-                ('you are', 'In what way exactly?')]
-
-    def _pattern_match(self, statement, pattern):
-        """Match pattern to statement, or return (False, None)
-
-        >>> ElizaStatementHandler()._pattern_match("Are you smart?", 'are you')
-        (True, None)
-
-        >>> ElizaStatementHandler()._pattern_match("Are you smart?", 'you are')
-        (False, None)
-
-        >>> ElizaStatementHandler()._pattern_match('The weather was rainy today', 'the {topic} *')
-        (True, 'weather')
-
-        >>> ElizaStatementHandler()._pattern_match("He makes me so mad", 'he * me')
-        (True, None)
-
-        >>> ElizaStatementHandler()._pattern_match('My girlfriend said that', "my {topic} *")
-        (True, 'girlfriend')
-        """
-        topic = None
-        norm = statement.lower()
-
-        for input_word, pattern_word in zip(norm.split(' '),
-                                            pattern.split(' ')):
-            if pattern_word == '*':
-                pass
-            elif pattern_word == '{topic}':
-                topic = input_word
-            elif pattern_word != input_word:
-                return (False, None)
-        return (True, topic)
-
-    def can_handle(self, statement, memory):
-        return self.handle(statement, memory) != None
-
-    def handle(self, statement, memory):
-        for pattern, answer in ElizaStatementHandler.PATTERNS:
-            match, topic = self._pattern_match(statement, pattern)
-            if match:
-                mem = []
-                if topic != None:
-                    mem.append((MemoryKeys.key_topic(), topic))
-                return Response(answer, mem)
-        return None
 
 if __name__ == '__main__':
     import doctest
