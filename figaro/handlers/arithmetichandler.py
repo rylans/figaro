@@ -14,6 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
+from __future__ import division
 
 from ..response import Response
 from ..handlerbase import StatementHandlerBase
@@ -25,10 +26,13 @@ class ArithmeticHandler(StatementHandlerBase):
     _ADD = lambda x, y: sum([x, y])
     _SUBTRACT = lambda x, y: sum([x, -1*y])
     _PRODUCT = lambda x, y: x*y
+    _DIVIDE = lambda x, y: x/y
 
     INFIX_OPS = [('+', _ADD),
                  ('plus', _ADD),
                  ('-', _SUBTRACT),
+                 ('/', _DIVIDE),
+                 ('by', _DIVIDE),
                  ('minus', _SUBTRACT),
                  ('*', _PRODUCT),
                  ('times', _PRODUCT)]

@@ -12,6 +12,14 @@ def test_math_handler_minus():
     expected = "-32.0"
     assert Figaro().hears("Calculate 1 minus 33") == expected
 
+def test_math_handler_divide_slash():
+    expected = "1.5"
+    assert Figaro().hears("whats 3 / 2") == expected
+
+def test_math_handler_divide_by():
+    expected = "1.5"
+    assert Figaro().hears("what is 3 divided by 2") == expected
+
 def test_math_handler_sqrt():
     expected = "4.0"
     assert Figaro().hears("whats root 16") == expected
